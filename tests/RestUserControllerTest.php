@@ -64,7 +64,7 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 	/**
 	 * Tests RestUserController->get()
 	 */
-	public function _testGet($id = null)
+	public function testGet($id = null)
 	{
 		if(!$id)
 		{
@@ -86,7 +86,7 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 	/**
 	 * Tests RestUserController->update()
 	 */
-	public function _testUpdate()
+	public function testUpdate()
 	{
 		$createdUser = $this->testAdd();
 		$id = $createdUser['id'];
@@ -116,7 +116,7 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 	/**
 	 * Tests RestUserController->delete()
 	 */
-	public function _testDelete()
+	public function testDelete()
 	{
 		$createdUser = $this->testAdd();
 		$id = $createdUser['id'];
@@ -139,7 +139,7 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 	/**
 	 * Tests RestUserController->search()
 	 */
-	public function _testSearch()
+	public function testSearch()
 	{
 		sleep(2);
 		$time = time();
