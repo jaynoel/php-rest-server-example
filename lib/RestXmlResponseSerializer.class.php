@@ -1,10 +1,10 @@
 <?php
-require_once __DIR__ . '/RestResponse.class.php';
+require_once __DIR__ . '/RestResponseSerializer.class.php';
 
 /**
  * REST response
  */
-class RestXmlResponse extends RestResponse
+class RestXmlResponseSerializer extends RestResponseSerializer
 {
 	/**
 	 * {@inheritDoc}

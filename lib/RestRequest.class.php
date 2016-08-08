@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/RestResponse.class.php';
+require_once __DIR__ . '/RestResponseSerializer.class.php';
 
 /**
  * REST request
@@ -7,21 +7,21 @@ require_once __DIR__ . '/RestResponse.class.php';
 abstract class RestRequest
 {
 	/**
-	 * @var RestResponse
+	 * @var RestResponseSerializer
 	 */
-	protected $response;
+	protected $responseSerializer;
 	
-	public function __construct(RestResponse $response)
+	public function __construct(RestResponseSerializer $responseSerializer)
 	{
-		$this->response = $response;
+		$this->responseSerializer = $responseSerializer;
 	}
 	
 	/**
 	 * Executes the request
-	 * @return RestResponse
+	 * @return RestResponseSerializer
 	 */
 	public function execute()
 	{
-		return $this->response;
+		return $this->responseSerializer;
 	}
 }

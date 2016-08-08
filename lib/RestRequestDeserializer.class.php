@@ -7,8 +7,8 @@ require_once __DIR__ . '/RestInvalidRequest.class.php';
 require_once __DIR__ . '/RestSchemeRequest.class.php';
 require_once __DIR__ . '/RestControllerRequest.class.php';
 
-require_once __DIR__ . '/RestXmlResponse.class.php';
-require_once __DIR__ . '/RestJsonResponse.class.php';
+require_once __DIR__ . '/RestXmlResponseSerializer.class.php';
+require_once __DIR__ . '/RestJsonResponseSerializer.class.php';
 
 require_once __DIR__ . '/RestController.class.php';
 
@@ -26,9 +26,14 @@ foreach ($controllerFiles as $controllerFile)
 class RestRequestDeserializer
 {
 	/**
-	 * @var RestResponse
+	 * @var string
 	 */
-	static $response;
+	static $responseSerializerClass;
+	
+	/**
+	 * @var bool
+	 */
+	static $isMultirequest;
 	
 	/**
 	 * @return RestRequest
@@ -41,8 +46,49 @@ class RestRequestDeserializer
 		}
 		catch (RestException $e)
 		{
-			return new RestInvalidRequest(self::$response, $e);
+			return self::getInvalidRequest($e);
 		}
+	}
+	
+	/**
+	 * @return RestRequest
+	 */
+	private static function getControllerInstance($controller)
+	{
+		$controllerClassName = "Rest{$controller}Controller";
+		if(!class_exists($controllerClassName) || !is_subclass_of($controllerClassName, 'RestController'))
+			throw new RestRequestException(RestRequestException::CONTROLLER_NOT_FOUND, "Controller [$controller] not found", array('controller' => $controller));
+		
+		return new $controllerClassName();
+	}
+	
+	/**
+	 * @return RestResponseSerializer
+	 */
+	public static function getResponseSerializer()
+	{
+		return new self::$responseSerializerClass(self::$isMultirequest);
+	}
+	
+	/**
+	 * @return RestRequest
+	 */
+	public static function getInvalidRequest(RestException $e)
+	{
+		return new RestInvalidRequest(self::getResponseSerializer(), $e);
+	}
+	
+	/**
+	 * @return RestRequest
+	 */
+	public static function getControllerRequest($controller, $action, $data)
+	{
+		$controllerInstance = self::getControllerInstance($controller);
+
+		if(!method_exists($controllerInstance, $action))
+			throw new RestRequestException(RestRequestException::ACTION_NOT_FOUND, "Action [$controller.$action] not found", array('controller' => $controller, 'action' => $action));
+		
+		return new RestControllerRequest(self::getResponseSerializer(), $controllerInstance, $action, $data);
 	}
 	
 	/**
@@ -60,8 +106,16 @@ class RestRequestDeserializer
 		$controller = array_shift($pathParts);
 		
 		$action = null;
-		if($controller != 'multirequest')
+		self::$isMultirequest = false;
+		if($controller == 'multirequest')
+		{
+			$action = 'execute';
+			self::$isMultirequest = true;
+		}
+		else
+		{
 			$action = array_shift($pathParts);
+		}
 
 		$pathParams = array();
 		while(count($pathParts) > 1)
@@ -77,7 +131,7 @@ class RestRequestDeserializer
 			if(strpos(strtolower($_SERVER['CONTENT_TYPE']), 'application/json') === 0)
 			{
 				$requestBody = file_get_contents("php://input");
-				if(preg_match('/^\{.*\}$/', $requestBody))
+				if(preg_match('/^[\{\[].*[\}\]]$/', $requestBody))
 				{
 					$post = json_decode($requestBody, true);
 					if(!$post)
@@ -102,22 +156,13 @@ class RestRequestDeserializer
 				|| strpos(strtolower($_SERVER['HTTP_ACCEPT']), 'application/xml') === 0 
 				|| strpos(strtolower($_SERVER['HTTP_ACCEPT']), 'text/xml') === 0)
 		{
-			self::$response = new RestXmlResponse();
+			self::$responseSerializerClass = 'RestXmlResponseSerializer';
 		}
 		else
 		{
-			self::$response = new RestJsonResponse();
+			self::$responseSerializerClass = 'RestJsonResponseSerializer';
 		}
 
-		$controllerClassName = "Rest{$controller}Controller";
-		if(!class_exists($controllerClassName))
-			throw new RestRequestException(RestRequestException::CONTROLLER_NOT_FOUND, "Controller [$controller] not found", array('controller' => $controller));
-		
-		$controllerInstance = new $controllerClassName();
-
-		if(!is_null($action) && !method_exists($controllerInstance, $action))
-			throw new RestRequestException(RestRequestException::ACTION_NOT_FOUND, "Action [$controller.$action] not found", array('controller' => $controller, 'action' => $action));
-		
-		return new RestControllerRequest(self::$response, $controllerInstance, $action, $data);
+		return self::getControllerRequest($controller, $action, $data);
 	}
 }

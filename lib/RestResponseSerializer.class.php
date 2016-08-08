@@ -4,10 +4,15 @@ require_once __DIR__ . '/../model/RestObject.class.php';
 /**
  * REST response
  */
-abstract class RestResponse
+abstract class RestResponseSerializer
 {
 	/**
-	 * @var RestObject
+	 * @var bool
+	 */
+	protected $isMultirequest;
+	
+	/**
+	 * @var any
 	 */
 	protected $response = null;
 
@@ -21,12 +26,22 @@ abstract class RestResponse
 	 */
 	protected $warnings;
 	
+	public function __construct($isMultirequest)
+	{
+		$this->isMultirequest = $isMultirequest;
+	}
+	
 	/**
-	 * @param RestObject $response
+	 * @param $response
 	 */
-	public function setResponse(RestObject $response = null)
+	public function setResponse($response = null)
 	{
 		$this->response = $response;
+	}
+	
+	public function getResponse()
+	{
+		return $this->response;
 	}
 	
 	/**
