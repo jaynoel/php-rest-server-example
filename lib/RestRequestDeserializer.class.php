@@ -67,7 +67,7 @@ class RestRequestDeserializer
 	 */
 	public static function getResponseSerializer()
 	{
-		return self::$responseSerializerClass(self::$isMultirequest);
+		return new self::$responseSerializerClass(self::$isMultirequest);
 	}
 	
 	/**
