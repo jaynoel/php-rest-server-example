@@ -8,16 +8,34 @@ class RestJsonResponseSerializer extends RestResponseSerializer
 {
 	public function getJson()
 	{
-		$json = array(
-			'result' => $this->response
-		);
+		$json = array();
+		
+		if(is_array($this->result))
+		{
+			$json['result'] = array();
+			foreach ($this->result as $index => $response)
+			{
+				if($response instanceof RestJsonResponseSerializer)
+				{
+					$json['result'][$index] = $response->getJson();
+				}
+				else
+				{
+					$json['result'][$index] = $response;
+				} 
+			}
+		}
+		else
+		{
+			$json['result'] = $this->result;
+		}
 
 		if(!is_null($this->error))
 		{
 			$json['error'] = array(
-				'code' => $this->error->getRestCode(),
-				'message' => $this->error->getMessage(),
-				'arguments' => $this->error->getArguments(),
+				'code' => $this->error->code,
+				'message' => $this->error->message,
+				'parameters' => $this->error->parameters,
 			);
 		}
 			
@@ -30,19 +48,8 @@ class RestJsonResponseSerializer extends RestResponseSerializer
 	 */
 	protected function serialize()
 	{
-		if($this->isMultirequest)
-		{
-			$json = array();
-			foreach($this->response as $response)
-			{
-				/* @var $response RestJsonResponseSerializer */
-				$json[] = $response->getJson();
-			}
-		}
-		else
-		{
-			$json = $this->getJson();
-		}
+		header("Content-Type: application/json");
+		$json = $this->getJson();
 		return json_encode($json);
 	}
 }

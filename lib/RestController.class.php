@@ -18,7 +18,7 @@ abstract class RestController
 			if(!isset($data[$parameter->name]))
 			{
 				if(!$parameter->isOptional())
-					throw new RestRequestException(RestRequestException::MISSING_PARAMETER, "Missing parameter [{$parameter->name}]", array('parameter' => $parameter->name));
+					throw new RestRequestException(RestRequestException::MISSING_PARAMETER, array('parameter' => $parameter->name));
 				
 				$arguments[] = $parameter->getDefaultValue();
 				continue;
@@ -30,7 +30,7 @@ abstract class RestController
 				if($parameter->isArray())
 				{
 					if(!is_array($data[$parameter->name]))
-						throw new RestRequestException(RestRequestException::PARAMETER_WRONG_TYPE, "Parameter [{$parameter->name}] expected to be array", array('parameter' => $parameter->name, 'type' => 'array'));
+						throw new RestRequestException(RestRequestException::PARAMETER_WRONG_TYPE, array('parameter' => $parameter->name, 'type' => 'array'));
 					
 					$arrayType = $this->getArrayType($method->getDocComment(), $parameter->name);
 					if($arrayType)
@@ -50,7 +50,7 @@ abstract class RestController
 
 			if(!is_array($data[$parameter->name]))
 			{
-				throw new RestRequestException(RestRequestException::PARAMETER_WRONG_TYPE, "Parameter [{$parameter->name}] expected to be {$type->name}", array('parameter' => $parameter->name, 'type' => $type->name));
+				throw new RestRequestException(RestRequestException::PARAMETER_WRONG_TYPE, array('parameter' => $parameter->name, 'type' => $type->name));
 			}
 
 			$arguments[] = $this->buildObject($parameter->name, $type, $data[$parameter->name]);
@@ -71,13 +71,13 @@ abstract class RestController
 		if(isset($data['objectType']))
 		{
 			if(!is_subclass_of($data['objectType'], $class))
-				throw new RestRequestException(RestRequestException::PARAMETER_WRONG_TYPE, "Parameter [$name] expected to be $class", array('parameter' => $name, 'type' => $class));
+				throw new RestRequestException(RestRequestException::PARAMETER_WRONG_TYPE, array('parameter' => $name, 'type' => $class));
 			
 			$class = $data['objectType'];
 		}
 		elseif($type->isAbstract())
 		{
-			throw new RestRequestException(RestRequestException::ABSTRACT_TYPE, "Parameter [$name] type [$class] is abstract", array('parameter' => $name, 'type' => $class));
+			throw new RestRequestException(RestRequestException::ABSTRACT_TYPE, array('parameter' => $name, 'type' => $class));
 		}
 		
 		return new $class($data);

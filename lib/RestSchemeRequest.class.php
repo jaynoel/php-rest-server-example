@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/RestRequest.class.php';
+require_once __DIR__ . '/RestSchemeResponse.class.php';
 
 /**
  * Builds the REST API scheme XML

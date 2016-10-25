@@ -11,9 +11,10 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 	 */
 	public function curl($service, $action, $data)
 	{
-		$url = "http://localhost:82/$service";
+		$url = "http://localhost:8089/simple-service-webapp/service/$service";
+// 		$url = "http://localhost:8090/service/$service";
 		if($action)
-			$url .= "/$action";
+			$url .= "/action/$action";
 		
 		$request = json_encode($data);
 		echo "Request: $request\n";
@@ -46,13 +47,12 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 	/**
 	 * Tests RestUserController->add()
 	 */
-	public function testAdd()
+	private function add()
 	{
 		$data = array(
 			'user' => array(
 				'firstName' => uniqid(),
 				'lastName' => uniqid(),
-				'email' => uniqid() . '@mailinator.com',
 			),
 		);
 		
@@ -63,9 +63,18 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 		$this->assertNotNull($createdUser['updatedAt']);
 		$this->assertEquals($data['user']['firstName'], $createdUser['firstName']);
 		$this->assertEquals($data['user']['lastName'], $createdUser['lastName']);
-		$this->assertEquals($data['user']['email'], $createdUser['email']);
+		$this->assertArrayHasKey('status', $createdUser);
+		$this->assertEquals($createdUser['status'], 0);
 		
 		return $createdUser;
+	}
+	
+	/**
+	 * Tests RestUserController->add()
+	 */
+	public function testAdd()
+	{
+		$this->add();
 	}
 	
 	/**
@@ -75,7 +84,7 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 	{
 		if(!$id)
 		{
-			$createdUser = $this->testAdd();
+			$createdUser = $this->add();
 			$id = $createdUser['id'];
 		}
 		
@@ -95,7 +104,7 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 	 */
 	public function testUpdate()
 	{
-		$createdUser = $this->testAdd();
+		$createdUser = $this->add();
 		$id = $createdUser['id'];
 		
 		$data = array(
@@ -103,7 +112,6 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 			'user' => array(
 				'firstName' => uniqid(),
 				'lastName' => uniqid(),
-				'email' => uniqid() . '@mailinator.com',
 			),
 		);
 		
@@ -115,7 +123,8 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 		$this->assertGreaterThan($createdUser['updatedAt'], $user['updatedAt']);
 		$this->assertEquals($data['user']['firstName'], $user['firstName']);
 		$this->assertEquals($data['user']['lastName'], $user['lastName']);
-		$this->assertEquals($data['user']['email'], $user['email']);
+		$this->assertArrayHasKey('status', $user);
+		$this->assertEquals($user['status'], 0);
 		
 		return $user;
 	}
@@ -125,7 +134,7 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 	 */
 	public function testDelete()
 	{
-		$createdUser = $this->testAdd();
+		$createdUser = $this->add();
 		$id = $createdUser['id'];
 		$data = array(
 			'id' => $id,
@@ -156,7 +165,7 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 		
 		for($i = 0; $i < $count; $i++)
 		{
-			$createdUser = $this->testAdd();
+			$createdUser = $this->add();
 			$ids[] = $createdUser['id'];
 		}
 
@@ -193,7 +202,7 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 		
 		for($i = 0; $i < $count; $i++)
 		{
-			$createdUser = $this->testAdd();
+			$createdUser = $this->add();
 			if($i >= ($pager['pageSize'] * ($pager['pageIndex'] - 1)) && $i < ($pager['pageSize'] * $pager['pageIndex']))
 				$ids[] = $createdUser['id'];
 		}
@@ -234,7 +243,7 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 		
 		for($i = 0; $i < $count; $i++)
 		{
-			$createdUser = $this->testAdd();
+			$createdUser = $this->add();
 			if($i >= ($pager['pageSize'] * ($pager['pageIndex'] - 1)) && $i < ($pager['pageSize'] * $pager['pageIndex']))
 				$ids[] = $createdUser['id'];
 		}
@@ -267,7 +276,6 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 				'user' => array(
 					'firstName' => uniqid(),
 					'lastName' => uniqid(),
-					'email' => uniqid() . '@mailinator.com',
 				),
 			),
 			array(
@@ -282,7 +290,6 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 				'user' => array(
 					'firstName' => uniqid(),
 					'lastName' => uniqid(),
-					'email' => uniqid() . '@mailinator.com',
 				),
 			),
 			array(
@@ -297,8 +304,10 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 			),
 		);
 
-		$responses = $this->curl('multirequest', null, $data);
+		$response = $this->curl('multirequest', null, $data);
 
+		$this->assertArrayHasKey('result', $response);
+		$responses = $response['result'];
 		$this->assertEquals(count($data), count($responses));
 
 		// add
@@ -308,7 +317,8 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 		$this->assertNotNull($responses[0]['result']['updatedAt']);
 		$this->assertEquals($data[0]['user']['firstName'], $responses[0]['result']['firstName']);
 		$this->assertEquals($data[0]['user']['lastName'], $responses[0]['result']['lastName']);
-		$this->assertEquals($data[0]['user']['email'], $responses[0]['result']['email']);
+		$this->assertArrayHasKey('status', $responses[0]['result']);
+		$this->assertEquals($responses[0]['result']['status'], 0);
 
 		// get
 		$this->assertEquals($id, $responses[1]['result']['id']);
@@ -319,14 +329,15 @@ class RestUserControllerTest extends PHPUnit_Framework_TestCase
 		$this->assertGreaterThanOrEqual($responses[0]['result']['updatedAt'], $responses[2]['result']['updatedAt']);
 		$this->assertEquals($data[2]['user']['firstName'], $responses[2]['result']['firstName']);
 		$this->assertEquals($data[2]['user']['lastName'], $responses[2]['result']['lastName']);
-		$this->assertEquals($data[2]['user']['email'], $responses[2]['result']['email']);
+		$this->assertArrayHasKey('status', $responses[2]['result']);
+		$this->assertEquals($responses[2]['result']['status'], 0);
 		
 		// delete
-		$this->assertNull($responses[3]['result']);
+		$this->assertTrue(!isset($responses[3]['result']) || is_null($responses[3]['result']));
 		$this->assertFalse(isset($responses[3]['error']));
 		
 		// invalid get
-		$this->assertNull($responses[4]['result']);
+		$this->assertTrue(!isset($responses[4]['result']) || is_null($responses[4]['result']));
 		$this->assertTrue(isset($responses[4]['error']));
 		$this->assertEquals('OBJECT_NOT_FOUND', $responses[4]['error']['code']);
 	}

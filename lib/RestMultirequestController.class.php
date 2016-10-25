@@ -70,7 +70,7 @@ class RestMultirequestController extends RestController
 		{
 			$responseIndex = intval($matches[1]) - 1;
 			if(!isset($responses[$responseIndex]))
-				throw new RestRequestException(RestRequestException::INVALID_MULTIREQUEST_TOKEN, "Invalid multirequest token [$value]", array('value' => $value));
+				throw new RestRequestException(RestRequestException::INVALID_MULTIREQUEST_TOKEN, array('token' => $value));
 			
 			$tokens = explode(':', $matches[2]);
 			try 
@@ -79,7 +79,7 @@ class RestMultirequestController extends RestController
 			}
 			catch(Exception $e)
 			{
-				throw new RestRequestException(RestRequestException::INVALID_MULTIREQUEST_TOKEN, "Invalid multirequest token [$value]", array('value' => $value));
+				throw new RestRequestException(RestRequestException::INVALID_MULTIREQUEST_TOKEN, array('token' => $value));
 			}
 		}
 		
@@ -124,7 +124,10 @@ class RestMultirequestController extends RestController
 		
 		foreach($data as $requestData)
 		{
-			$requests[] = RestRequestDeserializer::getControllerRequest($requestData['service'], $requestData['action'], $requestData);
+			if(is_array($requestData) && isset($requestData['service']))
+			{
+				$requests[] = RestRequestDeserializer::getControllerRequest($requestData['service'], $requestData['action'], $requestData);
+			}
 		}
 	
 		return array($requests);

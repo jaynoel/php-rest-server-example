@@ -7,10 +7,10 @@ require_once __DIR__ . '/RestException.class.php';
  */
 class RestInvalidRequest extends RestRequest
 {
-	public function __construct(RestResponse $response, RestException $exception)
+	public function __construct(RestResponseSerializer $responseSerializer, RestException $exception)
 	{
-		parent::__construct($response);
+		parent::__construct($responseSerializer);
 		
-		$response->setError($exception);
+		$responseSerializer->setError($exception);
 	}
 }

@@ -3,7 +3,7 @@
 /**
  * Filter pager
  */
-class RestFilterPager extends RestObject
+class Pager extends RestObject
 {
 	/**
 	 * @var int

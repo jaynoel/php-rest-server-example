@@ -11,14 +11,7 @@ require_once __DIR__ . '/RestXmlResponseSerializer.class.php';
 require_once __DIR__ . '/RestJsonResponseSerializer.class.php';
 
 require_once __DIR__ . '/RestController.class.php';
-
-$controllersDir = realpath(__DIR__ . '/../controllers');
-$controllerFiles = scandir($controllersDir);
-foreach ($controllerFiles as $controllerFile)
-{
-	if($controllerFile[0] != '.')
-		require_once "$controllersDir/$controllerFile";
-}
+require_once __DIR__ . '/RestMultirequestController.class.php';
 
 /**
  * Parse the HTTP request
@@ -36,12 +29,18 @@ class RestRequestDeserializer
 	static $isMultirequest;
 	
 	/**
+	 * @var array
+	 */
+	static $controllers = array();
+	
+	/**
 	 * @return RestRequest
 	 */
 	public static function deserialize()
 	{
 		try
 		{
+			self::loadControllers();
 			return self::parse();
 		}
 		catch (RestException $e)
@@ -50,15 +49,60 @@ class RestRequestDeserializer
 		}
 	}
 	
+	private static function loadControllers()
+	{
+		$controllersDir = realpath(__DIR__ . '/../controllers');
+		$controllerFiles = scandir($controllersDir);
+		foreach ($controllerFiles as $controllerFile)
+		{
+			if($controllerFile[0] != '.')
+			{
+				$path = "$controllersDir/$controllerFile";
+				if (preg_match_all('/^\s*class\s+([^\s]+)/m', file_get_contents($path), $classes))
+				{
+					require_once $path;
+					foreach($classes[1] as $class)
+					{
+						if(!is_subclass_of($class, 'RestController'))
+							continue;
+						
+						$reflectionClass = new ReflectionClass($class);
+						$comment = $reflectionClass->getDocComment();
+						$matches = null;
+						if(preg_match('/@service\s+([^\s]+)/', $comment, $matches))
+						{
+							self::$controllers[$matches[1]] = $class;
+						}
+						else 
+						{
+							self::$controllers[$class] = $class;
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * @return array
+	 */
+	public static function getControllers()
+	{
+		return self::$controllers;
+	}
+	
 	/**
 	 * @return RestRequest
 	 */
 	private static function getControllerInstance($controller)
 	{
-		$controllerClassName = "Rest{$controller}Controller";
-		if(!class_exists($controllerClassName) || !is_subclass_of($controllerClassName, 'RestController'))
-			throw new RestRequestException(RestRequestException::CONTROLLER_NOT_FOUND, "Controller [$controller] not found", array('controller' => $controller));
+		if($controller == 'multirequest')
+			return new RestMultirequestController();
 		
+		if(!isset(self::$controllers[$controller]))
+			throw new RestRequestException(RestRequestException::SERVICE_NOT_FOUND, array('service' => $controller));
+		
+		$controllerClassName = self::$controllers[$controller];
 		return new $controllerClassName();
 	}
 	
@@ -67,7 +111,7 @@ class RestRequestDeserializer
 	 */
 	public static function getResponseSerializer()
 	{
-		return new self::$responseSerializerClass(self::$isMultirequest);
+		return new self::$responseSerializerClass();
 	}
 	
 	/**
@@ -86,7 +130,7 @@ class RestRequestDeserializer
 		$controllerInstance = self::getControllerInstance($controller);
 
 		if(!method_exists($controllerInstance, $action))
-			throw new RestRequestException(RestRequestException::ACTION_NOT_FOUND, "Action [$controller.$action] not found", array('controller' => $controller, 'action' => $action));
+			throw new RestRequestException(RestRequestException::ACTION_NOT_FOUND, array('service' => $controller, 'action' => $action));
 		
 		return new RestControllerRequest(self::getResponseSerializer(), $controllerInstance, $action, $data);
 	}
@@ -103,20 +147,6 @@ class RestRequestDeserializer
 			return new RestSchemeRequest();
 		
 		$pathParts = explode('/', trim($path, '/'));
-		$controller = array_shift($pathParts);
-		
-		$action = null;
-		self::$isMultirequest = false;
-		if($controller == 'multirequest')
-		{
-			$action = 'execute';
-			self::$isMultirequest = true;
-		}
-		else
-		{
-			$action = array_shift($pathParts);
-		}
-
 		$pathParams = array();
 		while(count($pathParts) > 1)
 		{
@@ -131,18 +161,19 @@ class RestRequestDeserializer
 			if(strpos(strtolower($_SERVER['CONTENT_TYPE']), 'application/json') === 0)
 			{
 				$requestBody = file_get_contents("php://input");
-				if(preg_match('/^[\{\[].*[\}\]]$/', $requestBody))
+				$requestBody = str_replace(array("\n", "\r"), array('', ''), $requestBody);
+				if(preg_match('/^[\{\[].*[\}\]]$/m', $requestBody))
 				{
 					$post = json_decode($requestBody, true);
 					if(!$post)
-						throw new RestRequestException(RestRequestException::INVALID_JSON, "Invalid JSON");
+						throw new RestRequestException(RestRequestException::INVALID_JSON);
 				}
 			}
 			elseif(strpos(strtolower($_SERVER['CONTENT_TYPE']), 'multipart/form-data') === 0 && isset($_POST['json']))
 			{
 				$post = json_decode($_POST['json'], true);
 				if(!$post)
-					throw new RestRequestException(RestRequestException::INVALID_JSON, "Invalid JSON");
+					throw new RestRequestException(RestRequestException::INVALID_JSON);
 			}
 		}
 		if(!$post)
@@ -151,6 +182,22 @@ class RestRequestDeserializer
 		}
 		
 		$data = array_replace_recursive($post, $_FILES, $_GET, $pathParams);
+
+		if(!isset($data['service']))
+			throw new RestRequestException(RestRequestException::SERVICE_NOT_DEFINED);
+		
+		$controller = $data['service'];
+		$action = null;
+		self::$isMultirequest = false;
+		if($controller == 'multirequest')
+		{
+			$action = 'execute';
+			self::$isMultirequest = true;
+		}
+		else
+		{
+			$action = $data['action'];
+		}
 		
 		if(		(isset($data['format']) && strtolower($data['format']) == 'xml') 
 				|| strpos(strtolower($_SERVER['HTTP_ACCEPT']), 'application/xml') === 0 

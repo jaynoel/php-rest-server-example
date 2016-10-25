@@ -1,25 +1,27 @@
 <?php
-require_once __DIR__ . '/RestObject.class.php';
+require_once __DIR__ . '/../lib/RestObject.class.php';
+require_once __DIR__ . '/enums/UserStatus.enum.php';
+require_once __DIR__ . '/ModelException.class.php';
 
 /**
  * User object
  */
-class RestUser extends RestObject
+class User extends RestObject
 {
 	const TABLE_NAME = 'users';
 	
 	/**
-	 * @var int
+	 * @var long
 	 */
 	public $id;
 	
 	/**
-	 * @var int
+	 * @var long
 	 */
 	public $createdAt;
 
 	/**
-	 * @var int
+	 * @var long
 	 */
 	public $updatedAt;
 	
@@ -34,12 +36,13 @@ class RestUser extends RestObject
 	public $lastName;
 	
 	/**
-	 * @var string
+	 * @var UserStatus
 	 */
-	public $email;
+	public $status = UserStatus::ACTIVE;
 	
 	public function __construct(array $data = null)
 	{
+		unset($data['status']);
 		parent::__construct($data);
 	}
 
@@ -51,12 +54,12 @@ class RestUser extends RestObject
 			'updatedAt' => $dbData['updated_at'],
 			'firstName' => $dbData['first_name'],
 			'lastName' => $dbData['last_name'],
-			'email' => $dbData['email'],
+			'status' => $dbData['status'],
 		);
 	}
 	
 	/**
-	 * @return RestUser
+	 * @return User
 	 */
 	public function add()
 	{
@@ -65,7 +68,7 @@ class RestUser extends RestObject
 			'updated_at' => time(),
 			'first_name' => $this->sqliteString($this->firstName),
 			'last_name' => $this->sqliteString($this->lastName),
-			'email' => $this->sqliteString($this->email)
+			'status' => $this->sqliteString($this->status)
 		);
 
 		$record = RestDatabase::insert(self::TABLE_NAME, $values);
@@ -75,25 +78,25 @@ class RestUser extends RestObject
 	}
 	
 	/**
-	 * @param int $id
-	 * @return RestUser
+	 * @param long $id
+	 * @return User
 	 */
 	public static function get($id)
 	{
 		$result = RestDatabase::select(self::TABLE_NAME, array('id' => $id));
 		$record = $result->fetchArray(SQLITE3_ASSOC);
 		if(!$record)
-			throw new RestModelException(RestModelException::OBJECT_NOT_FOUND, "User id [$id] not found", array('type' => 'User', 'id' => $id));
+			throw new ModelException(ModelException::OBJECT_NOT_FOUND, array('type' => 'User', 'id' => $id));
 		
 		$data = self::db2object($record);
-		return new RestUser($data);
+		return new User($data);
 	}
 	
 	/**
-	 * @param RestUser $user
-	 * @return RestUser
+	 * @param User $user
+	 * @return User
 	 */
-	public function update(RestUser $user)
+	public function update(User $user)
 	{
 		$values = array(
 			'updated_at' => time(),
@@ -103,8 +106,8 @@ class RestUser extends RestObject
 			$values['first_name'] = $this->sqliteString($user->firstName);
 		if(!is_null($user->lastName))
 			$values['last_name'] = $this->sqliteString($user->lastName);
-		if(!is_null($user->email))
-			$values['email'] = $this->sqliteString($user->email);
+		if(!is_null($user->status))
+			$values['status'] = $this->sqliteString($user->status);
 
 		$record = RestDatabase::update(self::TABLE_NAME, $this->id, $values);
 		$data = self::db2object($record->fetchArray(SQLITE3_ASSOC));
@@ -113,7 +116,7 @@ class RestUser extends RestObject
 	}
 	
 	/**
-	 * @param int $id
+	 * @param long $id
 	 */
 	public static function delete($id)
 	{
@@ -121,11 +124,11 @@ class RestUser extends RestObject
 	}
 	
 	/**
-	 * @param RestUserFilter $filter
+	 * @param UserFilter $filter
 	 * @param RestFilterPager $pager
-	 * @return RestUserListResponse
+	 * @return UserList
 	 */
-	public function search(RestUserFilter $filter, RestFilterPager $pager)
+	public function search(UserFilter $filter, Pager $pager)
 	{
 	}
 }

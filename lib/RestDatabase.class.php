@@ -67,6 +67,14 @@ class RestDatabase
 		return self::$db->query("SELECT $columnsClause FROM $table $whereClause");
 	}
 	
+	/**
+	 * @param string $table
+	 * @param array $where
+	 * @param int $pageSize
+	 * @param int $pageIndex
+	 * @param array $columns
+	 * @return SQLite3Result
+	 */
 	public static function search($table, array $where, $pageSize, $pageIndex, array $columns = null)
 	{
 		self::init();
@@ -78,7 +86,8 @@ class RestDatabase
 		if($offset)
 			$limitClause .= ", $offset";
 		
-		return self::$db->query("SELECT $columnsClause FROM $table $whereClause $limitClause");
+		$sql = "SELECT $columnsClause FROM $table $whereClause $limitClause";
+		return self::$db->query($sql);
 	}
 	
 	public static function count($table, array $where)
