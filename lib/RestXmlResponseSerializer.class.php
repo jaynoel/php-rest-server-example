@@ -14,9 +14,6 @@ class RestXmlResponseSerializer extends RestResponseSerializer
 	 */
 	private function appendProperty(SimpleXMLElement $xml, $property, $value)
 	{
-		if($property == 'objectType')
-			return $xml->addAttribute('objectType', $value);
-		
 		if(is_object($value))
 		{
 			$child = $xml->addChild($property);
@@ -42,7 +39,7 @@ class RestXmlResponseSerializer extends RestResponseSerializer
 				}
 				$index++;
 			}
-			$child->addAttribute('objectType', $type);
+			$child->addChild('objectType', $type);
 			return $child;
 		}
 		
