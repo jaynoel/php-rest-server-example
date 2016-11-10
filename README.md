@@ -6,7 +6,6 @@ This server example is fully functional, however, it's lacking few important fea
  - Authorization
  - Logging
  - Proper DB implementation (I tried to keep it simple)
- - XML parsing and serializing
  - Simple file upload example
  - Simple file download example
 
