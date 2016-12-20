@@ -49,7 +49,7 @@ class RestMultirequestController extends RestController
 			return $this->replaceToken($tokens, $response->$token);
 
 		if(is_array($response))
-			return $this->replaceToken($tokens, $response['$token']);
+			return $this->replaceToken($tokens, $response[$token]);
 
 		throw new Exception("Wrong number of tokens");
 	}

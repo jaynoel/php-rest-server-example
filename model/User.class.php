@@ -68,7 +68,7 @@ class User extends RestObject
 			'updated_at' => time(),
 			'first_name' => $this->sqliteString($this->firstName),
 			'last_name' => $this->sqliteString($this->lastName),
-			'status' => $this->sqliteString($this->status)
+			'status' => $this->status
 		);
 
 		$record = RestDatabase::insert(self::TABLE_NAME, $values);
@@ -121,14 +121,5 @@ class User extends RestObject
 	public static function delete($id)
 	{
 		RestDatabase::delete(self::TABLE_NAME, array('id' => $id));
-	}
-	
-	/**
-	 * @param UserFilter $filter
-	 * @param RestFilterPager $pager
-	 * @return UserList
-	 */
-	public function search(UserFilter $filter, Pager $pager)
-	{
 	}
 }
